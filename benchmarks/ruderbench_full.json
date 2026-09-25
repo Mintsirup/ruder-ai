@@ -1,0 +1,1020 @@
+{
+  "name": "RuderBench Full Suite",
+  "version": "2.0",
+  "description": "64-case long-form benchmark covering generation, editing, debugging, refactoring, verification, tool routing, venv/environment handling, recovery, scope and multi-file consistency. Real AIAgent.process_task() path.",
+  "cases": [
+    {
+      "id": "G-01",
+      "title": "Python CLI 생성",
+      "prompts": [
+        "파이썬으로 간단한 계산기 CLI 프로젝트를 만들어줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "source_ext_any": [
+          ".py"
+        ]
+      }
+    },
+    {
+      "id": "G-02",
+      "title": "Java CLI 생성",
+      "prompts": [
+        "Java로 숫자 두 개를 더하는 간단한 CLI 프로그램을 만들어줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "files_any": [
+          "src/main/java/com/example/App.java",
+          ".java"
+        ]
+      }
+    },
+    {
+      "id": "G-03",
+      "title": "웹 카운터 생성",
+      "prompts": [
+        "HTML/CSS/JavaScript로 버튼을 누르면 숫자가 증가하는 웹 페이지를 만들어줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "web_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "files_exist": [
+          "index.html",
+          "app.js"
+        ]
+      }
+    },
+    {
+      "id": "G-04",
+      "title": "Node 프로젝트 생성",
+      "prompts": [
+        "Node.js 프로젝트 구조를 만들고 npm test가 가능하게 만들어줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "files_exist": [
+          "package.json",
+          "index.js",
+          "test.js"
+        ]
+      }
+    },
+    {
+      "id": "G-05",
+      "title": "C# 콘솔 생성",
+      "prompts": [
+        "C# 콘솔 프로젝트로 간단한 Hello 프로그램을 만들어줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "csharp_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "files_exist": [
+          "Program.cs"
+        ]
+      }
+    },
+    {
+      "id": "G-06",
+      "title": "음악 재생기 생성",
+      "prompts": [
+        "Java로 WAV 음악 재생기 기본 구현을 만들어줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "music_player"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "javax.sound.sampled",
+          "AudioSystem"
+        ]
+      }
+    },
+    {
+      "id": "G-07",
+      "title": "테스트 포함 생성",
+      "prompts": [
+        "파이썬 프로젝트를 만들고 핵심 함수에 pytest 테스트도 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "def ",
+          "test_"
+        ]
+      }
+    },
+    {
+      "id": "G-08",
+      "title": "README 최소화",
+      "prompts": [
+        "간단한 프로젝트를 만들되 소스와 실행에 필요한 파일 위주로 구성해줘. 불필요한 문서는 만들지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "source_ext_any": [
+          ".py"
+        ]
+      }
+    },
+    {
+      "id": "E-09",
+      "title": "Python 함수 수정",
+      "prompts": [
+        "add 함수가 문자열도 안전하게 처리하도록 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "target_changed": "main.py"
+      }
+    },
+    {
+      "id": "E-10",
+      "title": "Java 메서드 추가",
+      "prompts": [
+        "App에 subtract(int a,int b) 메서드를 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "subtract"
+        ]
+      }
+    },
+    {
+      "id": "E-11",
+      "title": "웹 버튼 스타일",
+      "prompts": [
+        "카운터 버튼을 보기 좋게 만들고 클릭 상태가 보이게 해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "web_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "button"
+        ]
+      }
+    },
+    {
+      "id": "E-12",
+      "title": "Node 함수 확장",
+      "prompts": [
+        "sum 외에 average 함수를 추가하고 테스트도 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "average"
+        ]
+      }
+    },
+    {
+      "id": "E-13",
+      "title": "Java 예외처리",
+      "prompts": [
+        "Calculator 스타일의 계산 코드에 0으로 나누기 예외 처리를 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "ArithmeticException",
+          "IllegalArgumentException",
+          "/ 0"
+        ]
+      }
+    },
+    {
+      "id": "E-14",
+      "title": "Python 타입힌트",
+      "prompts": [
+        "add 함수에 타입 힌트와 docstring을 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "def add",
+          "\"\"\""
+        ]
+      }
+    },
+    {
+      "id": "E-15",
+      "title": "환경설정 파일 생성",
+      "prompts": [
+        "프로젝트의 설정을 환경변수로 읽도록 config 파일과 예제 환경 파일을 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "process.env",
+          ".env.example"
+        ]
+      }
+    },
+    {
+      "id": "E-16",
+      "title": "로그 추가",
+      "prompts": [
+        "프로그램에 오류가 발생했을 때 로그가 남도록 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "logging",
+          "logger"
+        ]
+      }
+    },
+    {
+      "id": "E-17",
+      "title": "중복 제거",
+      "prompts": [
+        "현재 코드의 중복 로직을 찾아 공통 함수로 리팩터링해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "private",
+          "static"
+        ]
+      }
+    },
+    {
+      "id": "E-18",
+      "title": "문서화 최소 변경",
+      "prompts": [
+        "기능은 유지하면서 공개 함수에 간단한 문서화를 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "\"\"\"",
+          "# "
+        ]
+      }
+    },
+    {
+      "id": "D-19",
+      "title": "Python 버그 수정",
+      "prompts": [
+        "divide 함수가 잘못된 결과를 내고 있다. 테스트를 통과하도록 버그를 찾아 고쳐줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "return a / b"
+        ]
+      }
+    },
+    {
+      "id": "D-20",
+      "title": "Java 계산 버그",
+      "prompts": [
+        "Calculator의 add가 뺄셈을 하고 있다. 올바르게 고쳐줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "return a + b"
+        ]
+      }
+    },
+    {
+      "id": "D-21",
+      "title": "테스트 실패 분석",
+      "prompts": [
+        "현재 테스트가 실패한다. 실패 원인을 찾고 코드를 고쳐 테스트가 통과하게 해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "D-22",
+      "title": "잘못된 변수",
+      "prompts": [
+        "존재하지 않는 clearlyNonexistentMethod를 억지로 만들지 말고 실제 문제인지 확인해서 안전하게 처리해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "expected_execution_success": false,
+        "no_source_change": true
+      }
+    },
+    {
+      "id": "D-23",
+      "title": "널 처리",
+      "prompts": [
+        "Java 코드에서 null 입력이 들어와도 안전하게 처리하도록 고쳐줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "null",
+          "Objects.requireNonNull",
+          "== null"
+        ]
+      }
+    },
+    {
+      "id": "D-24",
+      "title": "브라우저 이벤트 버그",
+      "prompts": [
+        "버튼 클릭 시 숫자가 증가하지 않는다고 가정하고 이벤트 연결을 점검하고 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "web_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "addEventListener"
+        ]
+      }
+    },
+    {
+      "id": "D-25",
+      "title": "Node 테스트 실패",
+      "prompts": [
+        "npm test가 실패하는 원인을 찾아 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "files_exist": [
+          "test.js"
+        ]
+      }
+    },
+    {
+      "id": "D-26",
+      "title": "컴파일 오류 복구",
+      "prompts": [
+        "Java 프로젝트를 컴파일하고 오류가 있으면 수정해서 다시 컴파일해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "D-27",
+      "title": "문법 오류 복구",
+      "prompts": [
+        "Python 프로젝트의 문법/실행 문제를 확인하고 필요한 부분만 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "D-28",
+      "title": "실행환경 오류 분류",
+      "prompts": [
+        "실행 환경에서 생긴 오류와 소스 코드 오류를 구분해서 진단해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "R-29",
+      "title": "함수 분리",
+      "prompts": [
+        "큰 main 로직이 있다면 역할별 함수로 나눠 가독성을 개선해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "R-30",
+      "title": "Java 클래스 분리",
+      "prompts": [
+        "Java 프로그램의 출력/계산 책임을 별도 클래스로 분리해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "java_file": true
+      }
+    },
+    {
+      "id": "R-31",
+      "title": "Node 모듈화",
+      "prompts": [
+        "Node 코드를 작은 모듈로 나누고 기존 테스트가 계속 동작하게 해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "R-32",
+      "title": "웹 JS 정리",
+      "prompts": [
+        "웹 페이지의 전역 변수를 줄이고 코드를 정리해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "web_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "R-33",
+      "title": "타입 안정성",
+      "prompts": [
+        "Python 공개 함수에 적절한 타입 힌트를 추가해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_all": [
+          "->"
+        ]
+      }
+    },
+    {
+      "id": "R-34",
+      "title": "매직 넘버 제거",
+      "prompts": [
+        "Java 코드의 매직 넘버를 상수로 추출해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "static final",
+          "final "
+        ]
+      }
+    },
+    {
+      "id": "R-35",
+      "title": "중복 테스트 제거",
+      "prompts": [
+        "중복되는 테스트가 있다면 공통 fixture 또는 헬퍼로 정리해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "R-36",
+      "title": "구조 유지 리팩터링",
+      "prompts": [
+        "기능은 바꾸지 않고 프로젝트 구조와 코드만 깔끔하게 리팩터링해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "R-37",
+      "title": "안전한 패치",
+      "prompts": [
+        "한 파일의 특정 한 군데만 수정해야 한다. 중복되는 코드가 있어도 엉뚱한 위치는 건드리지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "java_file": true
+      }
+    },
+    {
+      "id": "R-38",
+      "title": "대규모 수정 후 검증",
+      "prompts": [
+        "코드를 여러 군데 리팩터링한 뒤 반드시 컴파일/테스트까지 수행해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "V-39",
+      "title": "Python 컴파일 검증",
+      "prompts": [
+        "Python 프로젝트를 실제로 검증하고 결과를 알려줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "has_verification_record": true
+      }
+    },
+    {
+      "id": "V-40",
+      "title": "Java 컴파일 검증",
+      "prompts": [
+        "Java 프로젝트를 실제로 컴파일해서 검증해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "has_verification_record": true
+      }
+    },
+    {
+      "id": "V-41",
+      "title": "Node 테스트 검증",
+      "prompts": [
+        "npm test를 실행해서 결과를 확인해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "tool_must_include": "execute_shell"
+      }
+    },
+    {
+      "id": "V-42",
+      "title": "실패 정직성",
+      "prompts": [
+        "일부러 실패하는 검증을 실행하고 실패했다면 성공이라고 말하지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_buggy"
+      },
+      "criteria": {
+        "expected_execution_success": false,
+        "has_verification_record": true
+      }
+    },
+    {
+      "id": "V-43",
+      "title": "비Git 검증",
+      "prompts": [
+        "Git 저장소가 아닌 프로젝트를 검증해줘. git_diff/status를 무의미하게 반복하지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "tool_must_exclude": "git_diff"
+      }
+    },
+    {
+      "id": "V-44",
+      "title": "변경 추적",
+      "prompts": [
+        "파일을 수정한 뒤 실제 변경 파일을 정확히 확인해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "target_changed": "src/main/java/com/example/App.java"
+      }
+    },
+    {
+      "id": "V-45",
+      "title": "검증 없는 성공 금지",
+      "prompts": [
+        "검증이 실행되지 않았다면 검증 PASS라고 단정하지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "has_verification_record": true
+      }
+    },
+    {
+      "id": "V-46",
+      "title": "최종 산출물 확인",
+      "prompts": [
+        "작업 후 실제 생성된 파일과 검증 결과를 함께 확인해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "has_verification_record": true
+      }
+    },
+    {
+      "id": "T-47",
+      "title": "Shell 선택",
+      "prompts": [
+        "python --version과 pip --version을 셸 명령으로 확인해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "tool_must_include": "execute_shell",
+        "tool_must_exclude": "execute_code"
+      }
+    },
+    {
+      "id": "T-48",
+      "title": "venv 생성",
+      "prompts": [
+        "Python 프로젝트에 .venv를 만들고 그 환경의 Python을 사용해 실행/검증해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          ".venv"
+        ]
+      }
+    },
+    {
+      "id": "T-49",
+      "title": "pip module 사용",
+      "prompts": [
+        "requirements.txt를 설치해야 한다면 전역 pip 대신 프로젝트 가상환경의 python -m pip 또는 pip 경로를 사용해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "T-50",
+      "title": "deactivate 관리",
+      "prompts": [
+        "가상환경을 사용하는 셸 명령을 실행하되 작업이 끝난 뒤 셸 환경을 정상 종료하도록 처리해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "T-51",
+      "title": "Shell 실패 복구",
+      "prompts": [
+        "존재하지 않는 명령을 실행하지 말고 필요한 환경 점검을 안전하게 수행해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "T-52",
+      "title": "명령어/코드 구분",
+      "prompts": [
+        "python --version은 Python 코드 실행이 아니라 셸 명령으로 처리해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "tool_must_include": "execute_shell",
+        "tool_must_exclude": "execute_code"
+      }
+    },
+    {
+      "id": "T-53",
+      "title": "파일 경로 안정성",
+      "prompts": [
+        "Windows 환경에서 프로젝트 경로를 안전하게 다루면서 Python 프로그램을 실행해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "T-54",
+      "title": "환경 재현성",
+      "prompts": [
+        "프로젝트 실행에 필요한 Python 환경을 프로젝트 단위로 재현 가능하게 구성해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "contains_any": [
+          "requirements.txt",
+          ".venv",
+          "pyproject.toml"
+        ]
+      }
+    },
+    {
+      "id": "T-55",
+      "title": "도구 실패 재계획",
+      "prompts": [
+        "첫 명령이 실패하더라도 같은 명령만 반복하지 말고 다른 적절한 방법으로 재계획해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "T-56",
+      "title": "Patch 실패 recovery",
+      "prompts": [
+        "패치가 현재 파일과 일치하지 않으면 파일을 다시 읽고 현재 내용 기준으로 안전하게 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_buggy"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "S-57",
+      "title": "중첩 프로젝트 scope",
+      "prompts": [
+        "중첩된 프로젝트를 수정할 때 바깥 RUDER-AI 프로젝트 파일은 건드리지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "not_changed_prefix": "ruder_ai/"
+      }
+    },
+    {
+      "id": "S-58",
+      "title": "없는 파일 보호",
+      "prompts": [
+        "없는 파일을 있다고 가정해서 새로 덮어쓰지 말고 먼저 확인해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "expected_execution_success": false
+      }
+    },
+    {
+      "id": "S-59",
+      "title": "명시적 파일 우선",
+      "prompts": [
+        "지정한 src/main/java/com/example/App.java만 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "target_changed": "src/main/java/com/example/App.java"
+      }
+    },
+    {
+      "id": "S-60",
+      "title": "기존 기능 보존",
+      "prompts": [
+        "기존 기능을 유지하면서 새 기능을 추가하고 기존 테스트도 깨지지 않게 해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "node_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "S-61",
+      "title": "멀티파일 일관성",
+      "prompts": [
+        "Java에서 클래스 이름을 변경하면 파일명과 참조도 함께 일관되게 수정해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "S-62",
+      "title": "삭제 요청",
+      "prompts": [
+        "더 이상 필요 없는 임시 파일을 제거해줘. 소스 파일은 삭제하지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "python_project"
+      },
+      "criteria": {
+        "require_execution_success": true
+      }
+    },
+    {
+      "id": "S-63",
+      "title": "Memory 오염 방지",
+      "prompts": [
+        "작업과 무관한 프로젝트 메모리나 RUDER-AI 내부 파일을 수정하지 마."
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "not_changed_prefix": "ruder_ai/"
+      }
+    },
+    {
+      "id": "S-64",
+      "title": "최종 종합",
+      "prompts": [
+        "작은 Java 프로젝트를 분석하고, 기능 하나 추가하고, 테스트/컴파일로 검증한 뒤 변경 내용을 요약해줘"
+      ],
+      "mode": "code",
+      "setup": {
+        "fixture": "java_project"
+      },
+      "criteria": {
+        "require_execution_success": true,
+        "java_file": true,
+        "has_verification_record": true
+      }
+    }
+  ]
+}

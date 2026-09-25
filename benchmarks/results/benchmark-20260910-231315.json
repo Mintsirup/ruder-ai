@@ -1,0 +1,236 @@
+{
+  "benchmark": "RuderBench Full Suite",
+  "version": "2.0",
+  "started_at": "2026-09-10T23:13:15.209755+00:00",
+  "forge_root": "C:\\Users\\under\\Downloads\\RUDER-AI_r35v16_prompt_v19",
+  "model": "ruder_ai-agent:latest",
+  "ollama_host": "http://127.0.0.1:11434",
+  "runner": "AIAgent.process_task",
+  "cases": [
+    {
+      "id": "G-01",
+      "title": "Python CLI 생성",
+      "fixture": "python_project",
+      "elapsed_ms": 52963.74,
+      "prompts": [
+        {
+          "prompt": "파이썬으로 간단한 계산기 CLI 프로젝트를 만들어줘",
+          "status": "ok",
+          "error": "",
+          "elapsed_ms": 52947.45,
+          "response": "이번 작업으로 main.py 파일을 생성했습니다. README.md 파일은 사용자가 직접 수정해 달라고 명시적으로 요청한 경우에만 허용됩니다. 현재 프로젝트 폴더 내에는 README.md 파일이 생성되지 않았습니다.\n\n[실행 근거]\n실제 변경 파일: main.py\nTester: - python_compile: PASS\n\n[구조화된 실행 결과]\n실제 변경 파일: main.py\n검증 상태: PASS",
+          "execution_result": {
+            "success": true,
+            "changed_files": [
+              "main.py"
+            ],
+            "verification": {
+              "success": true,
+              "summary": "- python_compile: PASS",
+              "result": {
+                "status": "success",
+                "verification_status": "passed",
+                "verification_success": true,
+                "summary": "- python_compile: PASS",
+                "ran_tools": [
+                  "python_compile"
+                ],
+                "failure_log": ""
+              },
+              "target_files": [
+                "main.py"
+              ]
+            },
+            "tasks": [
+              {
+                "order": 1,
+                "tool": "create_directory",
+                "status": "succeeded",
+                "message": "calculator_project 디렉터리 생성 완료"
+              },
+              {
+                "order": 2,
+                "tool": "write_file",
+                "status": "succeeded",
+                "message": "main.py 작성 완료"
+              },
+              {
+                "order": 3,
+                "tool": "write_file",
+                "status": "failed",
+                "message": "'calculator_project/README.md'는 참조용 문서(README/TASK_INDEX/RUNBOOK 등)로 보호되는 파일이라 자동으로 수정할 수 없습니다. 사용자가 이 파일을 직접 수정해 달라고 명시적으로 요청한 경우에만 허용됩니다."
+              },
+              {
+                "order": 1,
+                "tool": "write_file",
+                "status": "skipped",
+                "message": "이전 라운드에서 동일한 입력으로 성공 완료"
+              },
+              {
+                "order": 2,
+                "tool": "",
+                "status": "skipped",
+                "message": ""
+              },
+              {
+                "order": 3,
+                "tool": "verify_project",
+                "status": "succeeded",
+                "message": "적용 가능한 검증이 없어 아무것도 실행하지 않았습니다."
+              }
+            ],
+            "warnings": [],
+            "error": {},
+            "metrics": {
+              "uptime_ms": 52946.61,
+              "tasks": {
+                "calls": 1,
+                "successes": 0,
+                "failures": 0
+              },
+              "tools": {
+                "create_directory": {
+                  "calls": 1,
+                  "successes": 1,
+                  "failures": 0,
+                  "total_latency_ms": 1.47,
+                  "average_latency_ms": 1.47,
+                  "last_latency_ms": 1.47,
+                  "last_status": "success",
+                  "last_error_type": ""
+                },
+                "verify_project": {
+                  "calls": 2,
+                  "successes": 2,
+                  "failures": 0,
+                  "total_latency_ms": 93.14,
+                  "average_latency_ms": 46.57,
+                  "last_latency_ms": 91.57,
+                  "last_status": "success",
+                  "last_error_type": ""
+                },
+                "write_file": {
+                  "calls": 1,
+                  "successes": 1,
+                  "failures": 0,
+                  "total_latency_ms": 3.3,
+                  "average_latency_ms": 3.3,
+                  "last_latency_ms": 3.3,
+                  "last_status": "success",
+                  "last_error_type": ""
+                }
+              }
+            }
+          }
+        }
+      ],
+      "score": {
+        "passed": true,
+        "checks": {
+          "execution_success": true,
+          "source_ext_any": true
+        },
+        "changed_files": [
+          ".ruder_ai_backups/main.py.20260911-081357-093400.bak",
+          ".ruder_ai_memory.json",
+          "main.py"
+        ],
+        "outputs": [
+          "이번 작업으로 main.py 파일을 생성했습니다. README.md 파일은 사용자가 직접 수정해 달라고 명시적으로 요청한 경우에만 허용됩니다. 현재 프로젝트 폴더 내에는 README.md 파일이 생성되지 않았습니다.\n\n[실행 근거]\n실제 변경 파일: main.py\nTester: - python_compile: PASS\n\n[구조화된 실행 결과]\n실제 변경 파일: main.py\n검증 상태: PASS"
+        ],
+        "event_summary": {
+          "event_count": 6,
+          "task_end_count": 1,
+          "tool_calls": 4,
+          "tools": [
+            "create_directory",
+            "write_file",
+            "verify_project",
+            "verify_project"
+          ],
+          "tool_statuses": {
+            "create_directory": "success",
+            "write_file": "success",
+            "verify_project": "success"
+          },
+          "last_task_end": {
+            "ts": "2026-09-10T23:14:08.161679+00:00",
+            "event": "task_end",
+            "success": true,
+            "changed_files": [
+              "main.py"
+            ],
+            "verification": {
+              "success": true,
+              "summary": "- python_compile: PASS",
+              "result": {
+                "status": "success",
+                "verification_status": "passed",
+                "verification_success": true,
+                "summary": "- python_compile: PASS",
+                "ran_tools": [
+                  "python_compile"
+                ],
+                "failure_log": ""
+              },
+              "target_files": [
+                "main.py"
+              ]
+            },
+            "metrics": {
+              "uptime_ms": 52946.61,
+              "tasks": {
+                "calls": 1,
+                "successes": 0,
+                "failures": 0
+              },
+              "tools": {
+                "create_directory": {
+                  "calls": 1,
+                  "successes": 1,
+                  "failures": 0,
+                  "total_latency_ms": 1.47,
+                  "average_latency_ms": 1.47,
+                  "last_latency_ms": 1.47,
+                  "last_status": "success",
+                  "last_error_type": ""
+                },
+                "verify_project": {
+                  "calls": 2,
+                  "successes": 2,
+                  "failures": 0,
+                  "total_latency_ms": 93.14,
+                  "average_latency_ms": 46.57,
+                  "last_latency_ms": 91.57,
+                  "last_status": "success",
+                  "last_error_type": ""
+                },
+                "write_file": {
+                  "calls": 1,
+                  "successes": 1,
+                  "failures": 0,
+                  "total_latency_ms": 3.3,
+                  "average_latency_ms": 3.3,
+                  "last_latency_ms": 3.3,
+                  "last_status": "success",
+                  "last_error_type": ""
+                }
+              }
+            }
+          }
+        },
+        "source_files": [
+          "main.py"
+        ],
+        "last_response_contains_error": false
+      },
+      "workspace": "C:\\Users\\under\\Downloads\\RUDER-AI_r35v16_prompt_v19\\benchmarks\\results\\workspace-20260910-231315\\G-01"
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 0,
+    "total": 1
+  },
+  "finished_at": "2026-09-10T23:14:08.180737+00:00"
+}

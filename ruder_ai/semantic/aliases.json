@@ -1,0 +1,118 @@
+{
+    "save": [
+        "save",
+        "store",
+        "persist",
+        "write"
+    ],
+
+    "load": [
+        "load",
+        "read",
+        "restore"
+    ],
+
+    "delete": [
+        "delete",
+        "remove",
+        "erase",
+        "clear"
+    ],
+
+    "create": [
+        "create",
+        "make",
+        "generate",
+        "build"
+    ],
+
+    "update": [
+        "update",
+        "modify",
+        "edit",
+        "change"
+    ],
+
+    "config": [
+        "config",
+        "configuration",
+        "setting",
+        "settings"
+    ],
+
+    "player": [
+        "player",
+        "user",
+        "member"
+    ],
+
+    "command": [
+        "command",
+        "cmd"
+    ],
+
+    "listener": [
+        "listener",
+        "event"
+    ],
+
+    "core": [
+        "core",
+        "base"
+    ],
+
+    "저장": [
+        "save",
+        "store",
+        "persist",
+        "write"
+    ],
+
+    "불러오기": [
+        "load",
+        "read",
+        "restore"
+    ],
+
+    "삭제": [
+        "delete",
+        "remove",
+        "erase",
+        "clear"
+    ],
+
+    "생성": [
+        "create",
+        "make",
+        "generate",
+        "build"
+    ],
+
+    "수정": [
+        "update",
+        "modify",
+        "edit",
+        "change"
+    ],
+
+    "플레이어": [
+        "player",
+        "user",
+        "member"
+    ],
+
+    "명령어": [
+        "command",
+        "cmd"
+    ],
+
+    "리스너": [
+        "listener",
+        "event"
+    ],
+
+    "코어": [
+        "core",
+        "base"
+    ]
+}

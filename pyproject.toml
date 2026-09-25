@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ruder-ai"
+version = "0.1.0"
+description = "Ruder-AI Autonomous AI Software Engineering Engine (minimal, headless)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "httpx>=0.24.0",
+]
+
+[project.scripts]
+ruder-ai = "ruder_ai.main:app"

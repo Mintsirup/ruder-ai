@@ -1,0 +1,31 @@
+# === RUDER-AI 런타임 산출물 (agent가 워크스페이스에서 스스로 생성함) ===
+.ruder_ai_backups/
+.ruder_ai_memory.json
+.ruder_ai_config.json
+.forgecache/
+
+# === Python 빌드/캐시 (폰에서 pip install -e . 할 때 새로 생김) ===
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+*.egg
+
+# === 가상환경 (폰/PC 둘 다 각자 새로 만들어야 함 - OS/아키텍처 다름) ===
+.venv/
+venv/
+env/
+
+# === IDE/에디터 ===
+.vscode/
+.idea/
+*.swp
+
+# === OS 잡파일 ===
+.DS_Store
+Thumbs.db
+.runs/
+TODO.md
+Ruder-AI_TODO.md
