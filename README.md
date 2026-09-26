@@ -285,9 +285,9 @@ The current configurations are:
 | Model         | Language | Purpose           |
 | ------------- | -------- | ----------------- |
 | `ruder-ai-ko` | 한국어      | Korean RUDER-AI   |
-| `ruder-ai-zh` | 简体中文     | Chinese RUDER-AI  |
+| `ruder-ai-cn` | 简体中文     | Chinese RUDER-AI  |
 | `ruder-ai-en` | English  | English RUDER-AI  |
-| `ruder-ai-ja` | 日本語      | Japanese RUDER-AI |
+| `ruder-ai-jp` | 日本語      | Japanese RUDER-AI |
 
 Each model uses the same RUDER-AI Code Mode architecture while enforcing its configured response language.
 
