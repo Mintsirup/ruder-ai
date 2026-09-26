@@ -134,6 +134,7 @@ class PatchApplier:
                 cwd=str(workspace),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=PLATFORM.subprocess_env(),
             )
 
             try:

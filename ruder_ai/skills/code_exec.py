@@ -57,6 +57,7 @@ class ExecuteCodeSkill(BaseSkill):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=workspace_path,
+                env=PLATFORM.subprocess_env(),
             )
 
             try:
@@ -111,6 +112,9 @@ class ExecuteShellSkill(BaseSkill):
                 created_venv = await ensure_project_venv(workspace)
                 env = _venv_environment(workspace)
                 used_venv = True
+            # Always force UTF-8 in the child; the result is decoded as UTF-8
+            # below, and a piped Windows child would otherwise emit cp949.
+            env = PLATFORM.subprocess_env(env)
 
             proc = await asyncio.create_subprocess_shell(
                 command_text,
@@ -163,7 +167,8 @@ async def ensure_project_venv(workspace: Path) -> bool:
             raise RuntimeError(f"프로젝트 .venv 정리 실패: {exc}")
     proc = await asyncio.create_subprocess_exec(
         PLATFORM.python_executable(), "-m", "venv", str(venv),
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=str(workspace)
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=str(workspace),
+        env=PLATFORM.subprocess_env(),
     )
     stdout, stderr = await proc.communicate()
     if proc.returncode != 0:

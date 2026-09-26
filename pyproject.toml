@@ -16,3 +16,9 @@ dependencies = [
 
 [project.scripts]
 ruder-ai = "ruder_ai.main:app"
+
+# `Modelfiles/` holds Ollama model definitions, not importable Python.  Without
+# an explicit include list setuptools' flat-layout discovery treats it as a
+# second top-level package and aborts the build.
+[tool.setuptools.packages.find]
+include = ["ruder_ai*"]

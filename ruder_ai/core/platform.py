@@ -83,10 +83,41 @@ class PlatformAdapter:
 
     def command_args(self, executable: Path | str, args: Sequence[str] = ()) -> list[str]:
         """Build subprocess argv, handling Windows batch/cmd scripts safely."""
-        exe = Path(executable)
-        if self.is_windows and exe.suffix.lower() in {".bat", ".cmd"}:
-            return [self.shell_executable or "cmd.exe", "/d", "/c", str(exe), *map(str, args)]
-        return [str(exe), *map(str, args)]
+        # Keep the caller's spelling of the path.  Round-tripping through
+        # ``Path`` rewrites POSIX-style strings when running on Windows
+        # (``/tmp/gradlew`` -> ``\\tmp\\gradlew``), which silently changes the
+        # program subprocess is asked to launch.
+        raw = os.fspath(executable) if isinstance(executable, Path) else str(executable)
+        suffix = os.path.splitext(raw)[1].lower()
+        if self.is_windows and suffix in {".bat", ".cmd"}:
+            return [self.shell_executable or "cmd.exe", "/d", "/c", raw, *map(str, args)]
+        return [raw, *map(str, args)]
+
+    def subprocess_env(
+        self,
+        base: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        """Environment for a child process whose output we decode as UTF-8.
+
+        On Windows a child's stdout is encoded with the *ANSI code page*
+        (cp949 on a Korean system) whenever it is a pipe rather than a
+        console. The parent then decodes those bytes as UTF-8, and every
+        non-ASCII character in the output comes back as mojibake - which for
+        this agent means the model reads back its own Korean text as garbage
+        and concludes the code is broken when it is not.
+
+        Forcing UTF-8 in the child is the fix. ``PYTHONIOENCODING`` covers
+        Python's text streams; ``PYTHONUTF8`` additionally turns on full UTF-8
+        mode so filesystem paths with non-ASCII characters work. Non-Python
+        children ignore both, so this is safe to set unconditionally.
+
+        ``base`` lets a caller layer on top of an existing environment (a
+        project ``.venv`` PATH, for instance) rather than replace it.
+        """
+        env = dict(os.environ if base is None else base)
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+        return env
 
     def describe(self) -> dict[str, str | bool]:
         return {

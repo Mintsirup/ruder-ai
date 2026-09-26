@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import shutil
-import sys
 from pathlib import Path
 
 from ruder_ai.indexer.models import ProjectInfo
@@ -43,9 +42,9 @@ def _nearest_project_root(workspace: Path, target_files: list[str] | None) -> Pa
     # If all targets share a nested project root, use the deepest one.
     candidate = roots[0]
     for root in roots[1:]:
-        if str(root).startswith(str(candidate) + "/"):
+        if root == candidate or candidate in root.parents:
             candidate = root
-        elif str(candidate).startswith(str(root) + "/"):
+        elif root in candidate.parents:
             pass
         else:
             return workspace
@@ -141,7 +140,12 @@ class AutoVerifier:
             checks.append(runners.run_go_test(workspace))
 
         python_targets = [f for f in (target_files or []) if Path(f).suffix.lower() == ".py"]
-        python_targeted = bool(python_targets)
+        # A stray .py file (build script, tooling, vendored snippet) inside a
+        # C#/Java/Rust/... project must not drag the whole Python verification
+        # path in: it would report NOT_RUN noise for a language the task never
+        # touched.  A .py target only overrides detection when the workspace
+        # itself still carries Python project metadata.
+        python_targeted = bool(python_targets) and self._looks_like_python_project(workspace)
         if language == "Python" or build_system == "Python" or python_targeted:
             if not target_files or python_targeted:
                 if self._has_python_tests(workspace):
@@ -286,6 +290,19 @@ class AutoVerifier:
             if (workspace / rel).is_file():
                 return rel
         return None
+
+    @staticmethod
+    def _looks_like_python_project(workspace: Path) -> bool:
+        """Return True when the workspace root carries Python project metadata.
+
+        Used to decide whether a ``.py`` change is enough evidence that this is
+        really a Python project the language detector mis-labelled, as opposed
+        to a helper script sitting in someone else's repository.
+        """
+        for name in ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile"):
+            if (workspace / name).exists():
+                return True
+        return AutoVerifier._has_python_tests(workspace)
 
     @staticmethod
     def _has_python_tests(workspace: Path) -> bool:

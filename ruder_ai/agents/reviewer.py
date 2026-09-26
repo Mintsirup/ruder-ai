@@ -54,8 +54,11 @@ class ReviewerAgent(BaseRoleAgent):
     def _read_changed_files(self, changed_files: list[str]) -> str:
         blocks = []
         for rel in changed_files[:8]:
+            # resolve()는 상대 경로를 다시 정규화해서 반환하므로 결과를
+            # 그대로 써야지, 실패 시 원본 rel에 resolve()를 한 번 더
+            # 적용하면 논리적으로 다른 후보를 고를 수 있다.
             resolved = self.file_resolver.resolve(rel)
-            path = (self.workspace_path / resolved) if resolved else (self.workspace_path / rel)
+            path = self.workspace_path / (resolved or rel)
             if not path.exists():
                 blocks.append(f"### {rel}\n[삭제됨 또는 존재하지 않음]")
                 continue

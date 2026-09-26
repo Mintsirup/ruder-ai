@@ -48,7 +48,9 @@ async def _run(
             cwd=str(cwd),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env=env,
+            # A piped Windows child encodes stdout with the ANSI code page;
+            # the result is decoded as UTF-8 further down.
+            env=PLATFORM.subprocess_env(env),
         )
     except FileNotFoundError:
         return CheckResult(
@@ -115,7 +117,7 @@ async def run_python_scenario_test(
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env=dict(os.environ),
+            env=PLATFORM.subprocess_env(),
         )
     except FileNotFoundError:
         return CheckResult(
@@ -433,6 +435,7 @@ async def run_python_smoke_test(
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=PLATFORM.subprocess_env(),
         )
     except FileNotFoundError:
         return CheckResult(

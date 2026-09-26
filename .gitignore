@@ -3,6 +3,7 @@
 .ruder_ai_memory.json
 .ruder_ai_config.json
 .forgecache/
+.ruder_ai_logs/
 
 # === Python 빌드/캐시 (폰에서 pip install -e . 할 때 새로 생김) ===
 __pycache__/
@@ -17,6 +18,7 @@ dist/
 .venv/
 venv/
 env/
+.freebuff
 
 # === IDE/에디터 ===
 .vscode/
@@ -29,3 +31,5 @@ Thumbs.db
 .runs/
 TODO.md
 Ruder-AI_TODO.md
+.ruder_ai_origin.json
+

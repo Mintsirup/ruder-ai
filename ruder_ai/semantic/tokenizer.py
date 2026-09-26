@@ -21,12 +21,14 @@ class SemanticTokenizer:
     def tokenize(self, text: str) -> list[str]:
 
         result: list[str] = []
+        append = result.append
+        camel = self.CAMEL.findall
 
         for token in self.WORD.findall(text):
 
             lower = token.lower()
 
-            result.append(lower)
+            append(lower)
 
             if "_" in lower:
                 result.extend(
@@ -35,7 +37,13 @@ class SemanticTokenizer:
                     if part
                 )
 
-            for part in self.CAMEL.findall(token):
-                result.append(part.lower())
+            # The CAMEL pattern can only produce something the branches above
+            # did not already produce when the token has an uppercase letter, a
+            # digit or an underscore in it - "foo1bar" splits into foo/bar, but
+            # a plain lowercase "foobar" can only match itself. Three cheap
+            # predicate calls replace a regex run for the common case.
+            if not (token.islower() and token.isascii() and token.isalpha()):
+                for part in camel(token):
+                    append(part.lower())
 
         return list(dict.fromkeys(result))

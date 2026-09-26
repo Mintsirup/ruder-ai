@@ -8,6 +8,11 @@ def test_mode_prompts_are_distinct():
 
 
 def test_modelfile_is_coding_only():
-    text = __import__("pathlib").Path("Modelfile").read_text(encoding="utf-8")
-    assert "CODE MODE only" in text
-    assert "Everyday conversation" in text
+    from pathlib import Path
+
+    modelfiles = sorted(Path("Modelfiles").glob("ruder-ai-*"))
+    assert modelfiles, "no Ollama Modelfiles found under Modelfiles/"
+    for modelfile in modelfiles:
+        text = modelfile.read_text(encoding="utf-8")
+        assert "CODE MODE only" in text, modelfile.name
+        assert "Everyday conversation" in text, modelfile.name

@@ -35,6 +35,14 @@ class TypeResolver:
             str,
         ] = {}
 
+        # (lowercased name, original name) in declaration order, deduplicated
+        # on the lowercased form. The case-insensitive fallback has to stay an
+        # ordered scan - a substring hit on an earlier name beats an exact hit
+        # on a later one - but the old code recomputed ``name.lower()`` for
+        # every symbol on every query token, which on a 1,300-symbol project is
+        # tens of thousands of throwaway string allocations per plan.
+        self._lower_pairs: list[tuple[str, str]] = []
+
     def build(
         self,
         index: ProjectIndex,
@@ -42,6 +50,7 @@ class TypeResolver:
 
         self.type_map.clear()
         self.import_map.clear()
+        self._lower_pairs = []
 
         for symbol in index.symbols:
 
@@ -70,6 +79,16 @@ class TypeResolver:
             self.import_map.update(
                 index.imports
             )
+
+        # first-wins on the lowercased form, preserving type_map's insertion
+        # order - a later name that differs only by case can never win anyway
+        seen_lower: set[str] = set()
+        for name in self.type_map:
+            lower = name.lower()
+            if lower in seen_lower:
+                continue
+            seen_lower.add(lower)
+            self._lower_pairs.append((lower, name))
 
     def resolve(
         self,
@@ -153,33 +172,24 @@ class TypeResolver:
 
         lower = token.lower()
 
-        for name in self.type_map:
+        for lowered, name in self._lower_pairs:
 
-            if (
-                name.lower()
-                == lower
-            ):
-                return name
-
-            if (
-                lower
-                in name.lower()
-            ):
+            if lower in lowered:
                 return name
 
         # -------------------------
         # import 마지막 이름 비교
         # -------------------------
 
+        # Hoisted out of the loop: the old code rebuilt "." + token once per
+        # import in the project.
+        suffix = "." + token
+
         for full, short in (
             self.import_map.items()
         ):
 
-            if (
-                full.endswith(
-                    "." + token
-                )
-            ):
+            if full.endswith(suffix):
                 return short
 
         return None

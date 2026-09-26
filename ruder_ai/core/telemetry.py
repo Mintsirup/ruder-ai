@@ -9,6 +9,16 @@ from threading import Lock
 from typing import Any
 
 
+#: Printed at the end of every run - CLI, GUI chat and the JSONL execution
+#: log. Without an explicit terminator there is no way to tell "the agent
+#: finished" from "the stream was cut off mid-task" when reading a transcript
+#: or tailing the log.
+END_OF_TOKEN = "End Of Token"
+
+#: The same marker as a JSONL event name, for the execution log.
+END_OF_TOKEN_EVENT = "end_of_token"
+
+
 def _jsonable(value: Any, limit: int = 4000) -> Any:
     try:
         text = json.dumps(value, ensure_ascii=False, default=str)

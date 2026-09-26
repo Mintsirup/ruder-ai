@@ -26,6 +26,11 @@ async def _run_git(command: str, workspace_path: Optional[str]) -> Dict[str, Any
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=cwd,
+            # git quotes non-ASCII paths in its output using the locale
+            # code page unless told otherwise; the result is decoded as UTF-8
+            # below, so a Korean filename in `git status` would come back
+            # mojibake otherwise.
+            env=PLATFORM.subprocess_env(),
         )
         stdout, stderr = await proc.communicate()
 

@@ -18,8 +18,17 @@ from ruder_ai.agents.permissions import check_tool_permission
 from ruder_ai.core.tool_resolver import ToolResolver
 from ruder_ai.core.file_resolver import FileResolver
 from ruder_ai.core.failure_policy import FailurePolicy
-from ruder_ai.core.execution import ExecutionContext, ExecutionResult
-from ruder_ai.core.telemetry import JsonlExecutionLogger, MetricsRegistry
+from ruder_ai.core.execution import ExecutionContext, ExecutionResult, ExecutionTaskRecord
+from ruder_ai.core.telemetry import (
+    END_OF_TOKEN,
+    END_OF_TOKEN_EVENT,
+    JsonlExecutionLogger,
+    MetricsRegistry,
+)
+from ruder_ai.core.turn_intent import (
+    MUTATION_REFUSED_MESSAGE,
+    classify_turn,
+)
 from ruder_ai.core.checkpoint import FileSnapshotStore
 import time
 
@@ -212,6 +221,12 @@ class ToolExecutor:
         self.metrics = MetricsRegistry()
         self.snapshot_store = FileSnapshotStore(workspace_path)
         self._last_mutation_snapshot: dict[str, Any] | None = None
+        # 자유 루프(_run_step_loop)의 현재 스텝 레코드. 동일 인스턴스를
+        # 여러 코루틴이 절대 동시에 실행하지 않으므로(역할 파이프라인은
+        # 순차 호출) 인스턴스 필드로 충분하다.
+        self._current_step_record: ExecutionTaskRecord | None = None
+        # 직전 Tool 실행 결과(_refresh_index가 성공 여부를 판단할 때 사용).
+        self._last_tool_result: dict[str, Any] = {}
         # Role-based Tool authorization. None keeps legacy direct-Executor
         # callers unrestricted; role agents pass their explicit role name.
         self._active_role: str | None = None
@@ -262,8 +277,11 @@ class ToolExecutor:
                 break
         self.last_changed_files = []
         self.last_verification_summary = ""
+        self.last_verification_result = {}
+        self._last_tool_result = {}
         self.execution_context = ExecutionContext(request=self._current_task, workspace=str(self.workspace_path), role=role)
         self.last_execution_result = ExecutionResult(success=False)
+        self._current_step_record = None
         self.metrics.task_start()
         self.telemetry.log("task_start", request=self._current_task, role=role)
 
@@ -555,6 +573,13 @@ class ToolExecutor:
             if tool_call is None:
                 return response
 
+            step_record = self.execution_context.record_task(
+                step,
+                str(tool_name := tool_call.get("tool") or ""),
+                dict(tool_call.get("kwargs") or {}),
+            )
+            self._current_step_record = step_record
+
             tool_name = tool_call.get("tool")
 
             if not tool_name:
@@ -579,20 +604,28 @@ class ToolExecutor:
                 tool_name,
                 kwargs,
             )
+            self._last_tool_result = result
 
             tool_success = self._is_tool_result_success(result)
-            if 'record' in locals() and record.tool == tool_name:
-                record.status = "succeeded" if tool_success else "failed"
-                record.message = str(result.get("message", "") or result.get("summary", ""))
+            if self._current_step_record is not None and self._current_step_record.tool == tool_name:
+                self._current_step_record.status = "succeeded" if tool_success else "failed"
+                self._current_step_record.message = str(result.get("message", "") or result.get("summary", ""))
             if tool_success:
                 self._last_failure_context = ""
+                if self.execution_context.last_error:
+                    self.execution_context.last_error = {}
             else:
                 self._set_failure_context(tool_name, result)
 
-            print(
-                f"   결과 ({'성공' if tool_success else '실패'}): "
-                f"{self._format_for_log(result)}"
-            )
+            if not tool_success:
+                # 자유 루프에서도 Tool 실패는 구조화된 실행 결과에 남겨야
+                # build_execution_result가 성공으로 오판하지 않는다
+                # (Plan 루프와 동일한 기록 규칙).
+                self.execution_context.last_error = {
+                    "tool": tool_name,
+                    "message": str(result.get("message", "") or result),
+                    "error_type": str(result.get("error_type", "") or ""),
+                }
 
             await self.launchcore.tool_end(
                 call_id,
@@ -854,7 +887,14 @@ class ToolExecutor:
                 # 그대로 최종 보고에 써버리면, 실제로는 해결된 문제를 "아직도
                 # 실패 중"이라고 잘못 보고하게 된다. 종료를 확정하기 전에
                 # verify_project를 한 번 더 직접 재실행해 최신 상태를 확인한다.
-                fresh_failure = await self._recheck_failure_still_present(failure)
+                # 단, 재검증이 의미를 가지려면 직전 라운드에 실제 파일 변경이
+                # 있었어야 한다 — 변경이 없었다면(예: Plan이 verify_project
+                # 하나뿐이었던 경우) 몇 번 다시 돌려도 같은 결과가 나오므로
+                # 최대 900초까지 걸릴 수 있는 verify_project를 낭비 없이
+                # 건너뛴다 (재확인 불가(None) → 기존 failure 그대로 사용).
+                fresh_failure = await self._recheck_failure_still_present(
+                    failure, changed_files=changed_files,
+                )
                 if fresh_failure is False:
                     self._note_scratchpad(
                         f"[반복 계획 감지 {replans}/{self.max_replans}] "
@@ -895,7 +935,7 @@ class ToolExecutor:
         )
 
     async def _recheck_failure_still_present(
-        self, failure: str,
+        self, failure: str, changed_files: list[str] | None = None,
     ) -> str | bool | None:
         """동일 계획 반복으로 중단하기 직전, verify_project를 한 번 더
         직접 실행해 원래 실패가 여전히 재현되는지 확인한다.
@@ -907,9 +947,14 @@ class ToolExecutor:
           메시지를 반환하므로, 오래된(stale) `failure` 대신 이 값을
           최종 보고에 사용한다.
         - None: verify_project 자체를 (권한/스킬 부재 등으로) 재실행할
-          수 없었다. 이 경우 기존 동작대로 원래 `failure`를 그대로 쓴다
-          (재확인이 불가능하다고 해서 실패를 성공으로 둔갑시키지 않는다).
+          수 없었거나, 재확인의 근거가 될 파일 변경이 없어 건너뛴다.
+          이 경우 기존 동작대로 원래 `failure`를 그대로 쓴다 (재확인이
+          불가능하다고 해서 실패를 성공으로 둔갑시키지 않는다).
         """
+
+        if not changed_files:
+            # 직전 라운드에서 바뀐 파일이 없다면 검증 결과도 바뀌지 않았다.
+            return None
 
         skill = self.skill_registry.get_skill("verify_project")
         if skill is None:
@@ -1194,7 +1239,6 @@ class ToolExecutor:
                 str(getattr(pt, "tool", "") or ""),
                 dict(getattr(pt, "kwargs", {}) or {}),
             )
-
             # Verification is a separate pipeline stage. GoalPlanner may add
             # verify_project automatically, but while the Coder role is active
             # we defer it to TesterAgent instead of treating it as a permission
@@ -1342,6 +1386,7 @@ class ToolExecutor:
                 pt.tool,
                 kwargs,
             )
+            self._last_tool_result = result
 
             if pt.tool == "move_file" and self._is_tool_result_success(result):
                 src = kwargs.get("file_path") or kwargs.get("path")
@@ -1411,11 +1456,21 @@ class ToolExecutor:
                 pt.status = "failed"
                 task_record.status = "failed"
                 task_record.message = str(result.get("message", "") or result.get("summary", ""))
+                self.execution_context.last_error = {
+                    "tool": pt.tool,
+                    "message": task_record.message,
+                    "error_type": str(result.get("error_type", "") or ""),
+                }
                 return self._format_task_failure(pt, result)
 
             pt.status = "done"
             task_record.status = "succeeded"
             task_record.message = str(result.get("message", "") or result.get("summary", ""))
+            # 재계획/재시도로 이후 Task가 성공하면 이전 실패는 "마지막
+            # 상태"가 아니다. 최종 ExecutionResult가 성공을 실패로
+            # 뒤집지 않도록 성공 시점에 last_error를 비운다.
+            if self.execution_context.last_error:
+                self.execution_context.last_error = {}
 
             if call_key is not None:
                 completed_calls[call_key] = self._format_for_log(result)
@@ -2008,7 +2063,16 @@ class ToolExecutor:
 
         # Patch/diff-specific "not found" messages are validation errors:
         # the target file may exist; only the requested patch context is absent.
-        if "old_str" in text and any(x in text for x in ("not found", "not found", "찾을 수 없")):
+        if "old_str" in text and any(x in text for x in ("not found", "찾을 수 없")):
+            return ToolExecutor.ERROR_TYPE_VALIDATION
+
+        if any(kw in text for kw in permission_kw):
+            return ToolExecutor.ERROR_TYPE_PERMISSION
+
+        if any(kw in text for kw in network_kw):
+            return ToolExecutor.ERROR_TYPE_NETWORK
+
+        if any(kw in text for kw in validation_kw):
             return ToolExecutor.ERROR_TYPE_VALIDATION
 
         if any(kw in text for kw in not_found_kw):
@@ -2126,6 +2190,38 @@ class ToolExecutor:
                     }
 
         return None
+
+    def _check_turn_intent(
+        self,
+        tool_name: str,
+    ) -> dict[str, Any] | None:
+        """Block file mutations on a turn that never asked for any.
+
+        "안녕" once produced a ``write_file``: the planner invented a
+        ``hello_handler`` module and the agent modified a repository because
+        someone said hello. The model is free to plan whatever it likes, so the
+        decision has to be enforced here, at the last point before a tool
+        touches the filesystem - not in the planner, which the same model also
+        writes.
+
+        Read-only tools stay available: a question about the project is a
+        legitimate reason to open files, just never to change them.
+        """
+        if tool_name not in self.FILE_MUTATING_TOOLS:
+            return None
+
+        intent = classify_turn(self._current_task)
+        if intent.may_mutate:
+            return None
+
+        return {
+            "status": "error",
+            "error_type": self.ERROR_TYPE_VALIDATION,
+            "message": MUTATION_REFUSED_MESSAGE,
+            "turn_kind": intent.kind.value,
+            "turn_signal": intent.signal,
+            "turn_reason": intent.reason,
+        }
 
     def _check_protected_files(
         self,
@@ -2253,6 +2349,10 @@ class ToolExecutor:
         self.last_execution_result = result
         self.metrics.task_end(result.success)
         self.telemetry.log("task_end", success=result.success, changed_files=result.changed_files, verification=result.verification, metrics=result.metrics)
+        # Explicit terminator in the JSONL log: a run that dies mid-task is
+        # otherwise indistinguishable from one that finished, and every
+        # consumer has to guess from a missing task_end.
+        self.telemetry.log(END_OF_TOKEN_EVENT, marker=END_OF_TOKEN, task=self._current_task)
         return result
 
     def _infer_project_root(self, relative_path: str) -> str | None:
@@ -2428,6 +2528,10 @@ class ToolExecutor:
         guard_result = self._check_protected_files(tool_name, kwargs)
         if guard_result is not None:
             return guard_result
+
+        turn_guard = self._check_turn_intent(tool_name)
+        if turn_guard is not None:
+            return turn_guard
 
         # A common LLM planning error is to apply patch_file and then immediately
         # call preview_patch with the same old_str. At that point old_str no longer
@@ -2817,12 +2921,30 @@ class ToolExecutor:
         if tool_name not in self.FILE_MUTATING_TOOLS:
             return
 
+        # 실패한 변형은 파일을 바꾸지 않았다. 이 경로에서 파일 하나를
+        # 다시 인덱싱하면 전체 파생 인덱스(콜그래프/참조/시맨틱/타입)
+        # 4종을 모두 재빌드하게 된다 — 실패한 호출마다 반복되면 불필요한
+        # CPU 낭비이므로 성공한 변형만 갱신한다.
+        if not self._is_tool_result_success(self._last_tool_result):
+            return
+
         path = (
             kwargs.get("file_path")
             or kwargs.get("path")
         )
 
         if path:
+
+            # Drop the derived-data cache entry for the file we just wrote.
+            # (path, size, mtime_ns) is the cache key, so a normal write
+            # already misses it - but on a filesystem with a coarse mtime a
+            # same-size rewrite inside one tick would not, and a stale AST
+            # would silently keep the old symbol names alive.
+            from ruder_ai.indexer.file_cache import CACHE as _FILE_CACHE
+
+            _FILE_CACHE.invalidate(
+                self.agent.workspace_path / path
+            )
 
             self.agent.refresh_file(path)
 

@@ -7,6 +7,17 @@ from pathlib import Path
 from typing import Any
 
 from ruder_ai.core.file_resolver import FileResolver
+from ruder_ai.core.survey import (
+    build_detail,
+    build_overview,
+    build_survey,
+    format_overview,
+    format_survey,
+    is_targeted_question,
+    wants_project_summary,
+    wants_repeat,
+    wants_survey,
+)
 from ruder_ai.verify.csharp_static import run_csharp_static_check
 
 
@@ -16,10 +27,39 @@ class DeterministicActionResolver:
     def __init__(self, workspace):
         self.workspace = Path(workspace).resolve()
         self.files = FileResolver(self.workspace)
+        # Injected by AIAgent so a whole-project survey reuses the index that
+        # is already built rather than scanning the workspace again.
+        self.agent_index = None
+        # A survey is ~48k characters; remembering that one was delivered is
+        # what stops the second identical dump.
+        self._survey_delivered = False
 
     @staticmethod
     def classify(prompt: str) -> str | None:
         text = str(prompt or '').lower()
+
+        # A request about the shape of the whole project is answered from the
+        # index, not by a plan. "일일히 분석해서 파일마다 기능 말해줘" used to
+        # contain '기능' and '프로젝트', so it fell through to the mutation
+        # pipeline, which read two files out of 190 and reported nothing about
+        # the rest. Checked first, before any marker filter.
+        if wants_survey(prompt):
+            return 'project_survey'
+
+        # "executor.py 자세히", "테스트 파일만 설명해줘". A 48 000-character
+        # dump answers "describe every file" and nothing else; the follow-up
+        # that gets asked after one is always narrower, so it is answered
+        # narrowly. Checked before the summary because naming a file is a
+        # stronger signal than asking what the project is.
+        if is_targeted_question(prompt):
+            return 'project_detail'
+
+        # "이 프로젝트가 뭐 하는 곳이야?" used to fall through to the
+        # mutation pipeline, which read a few files and reported "변경된
+        # 파일이 없습니다" - an answer to a question nobody asked. It gets a
+        # deterministic overview instead: correct, complete, and one screen.
+        if wants_project_summary(prompt):
+            return 'project_summary'
 
         # Action-oriented requests must reach the normal Planner/Executor
         # pipeline. Deterministic inspection is reserved for genuinely
@@ -71,6 +111,12 @@ class DeterministicActionResolver:
             return await self.csharp_check(prompt)
         if action == 'python_check':
             return self.python_check(prompt)
+        if action == 'project_survey':
+            return await self.project_survey(prompt)
+        if action == 'project_detail':
+            return await self.project_detail(prompt)
+        if action == 'project_summary':
+            return await self.project_summary(prompt)
         return None
 
     def environment_check(self) -> dict[str, Any]:
@@ -105,6 +151,127 @@ class DeterministicActionResolver:
             'result': report.log_text(),
             'skipped': report.skipped,
         }
+
+    async def project_survey(self, prompt: str) -> dict[str, Any]:
+        """Describe every indexed file, and state how many were covered.
+
+        ``self.agent_index`` is injected by ``AIAgent`` so this reuses the
+        already-built index instead of scanning the workspace a second time.
+
+        A survey is ~48 000 characters. Serving the identical wall twice in a
+        row in a chat pane is not an answer, it is a scroll, so a repeat
+        request gets the overview plus the ways to go narrower instead -
+        unless the user explicitly asked for the full thing again.
+        """
+        index = self.agent_index
+        if index is None:
+            index = self._build_index()
+
+        survey = build_survey(index)
+        roles = {
+            role: len(bucket)
+            for role, bucket in sorted(survey.by_role().items())
+        }
+        base = {
+            'action': 'project_survey',
+            'status': 'success',
+            'covered': survey.covered,
+            'total': survey.total,
+            'unreadable': survey.unreadable,
+            'roles': roles,
+        }
+
+        if self._survey_delivered and not wants_repeat(prompt):
+            overview = build_overview(index)
+            base['report'] = (
+                f"전체 파일 조사는 방금 동일한 내용으로 전달했습니다 "
+                f"({survey.covered}/{survey.total}개, 약 {len(format_survey(survey)):,}자).\n"
+                "같은 내용을 다시 붙여넣는 대신 아래 개요와 좁혀서 보는 방법을 "
+                "사용하세요. 전체 조사를 다시 출력하려면 '전체 조사 다시 보여줘' "
+                "라고 요청하시면 됩니다.\n\n"
+                + format_overview(overview)
+                + "\n좁혀서 보기 예시:\n"
+                "- `ruder_ai/core/executor.py` 는 어떤 일을 해?\n"
+                "- 테스트 파일만 설명해줘\n"
+                "- core 디렉터리 자세히\n"
+            )
+            base['repeated'] = True
+            return base
+
+        report = format_survey(survey)
+        self._survey_delivered = True
+        base['report'] = report
+        return base
+
+    async def project_summary(self, prompt: str) -> dict[str, Any]:
+        """Answer "what is this project?" in one screen, without an LLM."""
+        index = self.agent_index
+        if index is None:
+            index = self._build_index()
+
+        overview = build_overview(index)
+        return {
+            'action': 'project_summary',
+            'status': 'success',
+            'covered': overview.covered,
+            'total': overview.total,
+            'files': overview.file_count,
+            'symbols': overview.symbol_count,
+            'language': overview.language,
+            'build_system': overview.build_system,
+            'roles': overview.roles,
+            'report': format_overview(overview),
+        }
+
+    async def project_detail(self, prompt: str) -> dict[str, Any]:
+        """Answer about one file, one role or one directory, not everything.
+
+        Falls back to the overview when the narrowing hint matches nothing:
+        an answer is still better than a full dump, and a full dump is what
+        the user is already scrolling past.
+        """
+        index = self.agent_index
+        if index is None:
+            index = self._build_index()
+
+        detail = build_detail(index, prompt)
+        if detail is None:
+            overview = build_overview(index)
+            return {
+                'action': 'project_detail',
+                'status': 'success',
+                'covered': overview.covered,
+                'total': overview.total,
+                'matched': 0,
+                'report': format_overview(overview),
+            }
+
+        report, exact = detail
+        return {
+            'action': 'project_detail',
+            'status': 'success',
+            'covered': 1 if exact is not None else None,
+            'matched': 1 if exact is not None else None,
+            'report': report,
+        }
+
+    def _build_index(self):
+        from ruder_ai.indexer.detector import ProjectDetector
+        from ruder_ai.indexer.scanner import ProjectScanner
+        from ruder_ai.indexer.symbol_indexer import SymbolIndexer
+
+        from ruder_ai.indexer.detector import ProjectDetector
+        from ruder_ai.indexer.scanner import ProjectScanner
+        from ruder_ai.indexer.symbol_indexer import SymbolIndexer
+
+        scanner = ProjectScanner(self.workspace)
+        files = scanner.scan()
+        return SymbolIndexer().build(
+            self.workspace,
+            files,
+            ProjectDetector().detect(self.workspace, files),
+            dict(scanner.inverted_index),
+        )
 
     def python_check(self, prompt: str) -> dict[str, Any]:
         import py_compile

@@ -99,7 +99,16 @@ async def run_csharp_static_check(
                 stderr=f"대상 C# 파일을 찾을 수 없습니다: {', '.join(map(str, target_files))}",
             )
     else:
-        files = [p for p in workspace.rglob("*.cs") if ".git" not in p.parts and "Library" not in p.parts and "Temp" not in p.parts]
+        # 주의: p.parts(절대 경로)로 필터링하면 Windows의 사용자 temp
+        # 디렉터리(..\Local\Temp\..) 아래 전부가 걸려 어떤 파일도 검사
+        # 대상이 되지 않는다. workspace 기준 상대 parts로 판단한다.
+        files = [
+            p for p in workspace.rglob("*.cs")
+            if not any(
+                part in {".git", "Library", "Temp"}
+                for part in p.relative_to(workspace).parts[:-1]
+            )
+        ]
         if not files:
             return CheckResult(
                 tool="csharp-static",

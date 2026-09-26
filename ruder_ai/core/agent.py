@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -18,6 +19,7 @@ from ruder_ai.core.settings import RuderAISettings
 from ruder_ai.core.memory import MemoryManager
 from ruder_ai.core.planner import TaskPlanner
 from ruder_ai.core.reflection import Reflector
+from ruder_ai.core.turn_intent import TurnKind, classify_turn
 from ruder_ai.agents import (
     AgentOrchestrator,
     ExplorerAgent,
@@ -367,34 +369,112 @@ class AIAgent:
 
         return self.project_index
 
+    async def _answer_conversationally(self, prompt: str) -> str:
+        """Reply to a greeting in one LLM call, with no tools and no index.
+
+        The agent still introduces itself and lists what it can do, so a bare
+        "안녕" is a useful first turn rather than a dead end.
+        """
+        index = self.project_index
+        project_line = ""
+        if index is not None:
+            project = getattr(index, "project", None)
+            language = getattr(project, "language", None) or "?"
+            build_system = getattr(project, "build_system", None) or "?"
+            project_line = (
+                f"\n현재 작업공간: {index.workspace} "
+                f"({len(index.files)}개 파일, {language}/{build_system})"
+            )
+
+        capabilities = "\n".join(
+            f"  - {line}"
+            for line in (
+                "코드 작성/수정/삭제 (예: \"인증 모듈에 테스트 추가해줘\")",
+                "버그 원인 찾기와 수정 (예: \"로그인 실패가 왜 나는지 고쳐줘\")",
+                "프로젝트 구조/기능 설명 (예: \"이 프로젝트가 뭐 하는 곳이야?\")",
+                "테스트 실행과 검증 (예: \"테스트 돌려줘\")",
+            )
+        )
+
+        system = (
+            "RUDER-AI 코드 에이전트입니다. 사용자가 인사나 잡담을 보냈다면 "
+            "짧고 친근하게 인사하고, 무엇을 도와줄 수 있는지 위 목록을 "
+            "간결히 안내하세요. 도구를 호출하거나 파일을 만들지 마세요."
+        )
+        user = f"사용자: {prompt}\n\n사용 가능한 기능:\n{capabilities}{project_line}"
+
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        try:
+            return await self._llm_chat(messages)
+        except Exception as exc:
+            # A failed greeting must not look like a failed task.
+            return (
+                f"안녕하세요! 무엇을 도와드릴까요?\n\n"
+                f"(지금은 모델에 연결하지 못했습니다: {exc})"
+            )
+
     def _workspace_fs_signature(self):
         """Cheap filesystem signature for cross-turn index invalidation.
 
         It only stats paths; source contents are not read here. This catches
         files added/removed and files modified between persistent bridge
         requests without rescanning file contents on every unchanged request.
+
+        The old version used ``rglob("*")`` and filtered afterwards, so every
+        object file under ``.git`` and every artifact under ``build/`` was
+        stat-ed twice on every single request; it also compared the ignore
+        rules against the *workspace's own* path components, which meant a
+        checkout that happened to live under a directory named ``out`` or
+        ``build`` produced a permanently empty signature. Pruning the walk and
+        matching only paths below the workspace fixes both.
         """
         root = self.workspace_path
+        ignore = self.scanner.IGNORE_DIRS
         entries = []
-        try:
-            for path in root.rglob("*"):
-                if not path.is_file():
-                    continue
-                if any(part in self.scanner.IGNORE_DIRS for part in path.parts):
-                    continue
-                try:
-                    st = path.stat()
-                except OSError:
-                    continue
-                entries.append((str(path.relative_to(root)), st.st_size, st.st_mtime_ns))
-        except OSError:
-            return None
+        stack = [str(root)]
+
+        while stack:
+            directory = stack.pop()
+            try:
+                entries_iter = os.scandir(directory)
+            except OSError:
+                continue
+
+            with entries_iter as it:
+                for entry in it:
+                    try:
+                        if entry.is_dir():
+                            if entry.name not in ignore:
+                                stack.append(entry.path)
+                            continue
+                        if not entry.is_file():
+                            continue
+                        st = entry.stat()
+                    except OSError:
+                        continue
+
+                    rel = os.path.relpath(entry.path, str(root)).replace(os.sep, "/")
+                    entries.append((rel, st.st_size, st.st_mtime_ns))
+
         return tuple(sorted(entries))
 
     async def process_task(self, prompt: str, mode: str = "code", *, resume: bool = False) -> str:
         # Persistent bridge request-local mode: never let a previous request
         # leave the LLM in the wrong persona.
         self.request_mode = str(mode or "code").strip().lower()
+
+        # A greeting is not a task. Sending it down the full
+        # Explorer->Planner->Coder->Tester->Reviewer pipeline costs several LLM
+        # round trips to produce "no files changed" - and, before the executor
+        # learned to refuse, it produced an actual file write. Answer it with a
+        # single call instead. The executor guard remains the authority; this
+        # is only about not doing pointless work.
+        intent = classify_turn(prompt)
+        if intent.kind is TurnKind.CONVERSATIONAL:
+            return await self._answer_conversationally(prompt)
         if self.request_mode not in {"code", "inspect", "autonomous"}:
             self.request_mode = "code"
 
@@ -407,7 +487,7 @@ class AIAgent:
         if self.request_mode == "autonomous":
             async def _run_cycle(*, prompt: str, max_cycles: int = 1):
                 current_index = self._build_project_index()
-                return await self.agent_orchestrator.run(
+                result = await self.agent_orchestrator.run(
                     prompt=prompt,
                     project_index=current_index,
                     task_planner=self.planner,
@@ -420,12 +500,26 @@ class AIAgent:
                     auto_plan_fix=self._auto_fix_mkdir_hallucination,
                     max_cycles=max_cycles,
                 )
+                # AutonomyController는 runner.last_changed_files로 변경
+                # 파일 예산을 계산한다. Orchestrator.run()이 문자열만
+                # 반환하므로, 이 속성을 여기서 노출하지 않으면 예산이
+                # 항상 0으로 유지되는 논리 구멍이 생긴다 — Executor가
+                # 누적해둔 실제 변경 파일 목록을 그대로 노출한다.
+                _run_cycle.last_changed_files = list(
+                    getattr(self.executor, "last_changed_files", []) or []
+                )
+                return result
             result = await self.autonomy.run(_run_cycle, prompt=prompt, resume=resume)
             return result
 
         # The bridge is persistent across requests. Refresh the index whenever
         # workspace files changed since the previous task.
         index = self._build_project_index()
+
+        # A whole-project survey is answered from this index. Without the
+        # hand-off the deterministic action would scan the workspace a second
+        # time for the same answer.
+        self.deterministic_actions.agent_index = index
 
         # Explicit file names are resolved against the live filesystem before
         # planning. This prevents a stale/semantic-only index from making a
@@ -484,6 +578,27 @@ class AIAgent:
             return f"[csharp_check] {status.upper()}\n{result.get('result','')}"
         if action == "git_status":
             return f"[git_status] {status.upper()}\n{result.get('result','')}"
+        if action == "project_survey":
+            covered, total = result.get("covered", 0), result.get("total", 0)
+            header = (
+                f"[project_survey] {status.upper()} "
+                f"({covered}/{total} 파일 설명됨)"
+            )
+            if result.get("unreadable"):
+                header += f" · 판독 불가 {len(result['unreadable'])}개"
+            return f"{header}\n\n{result.get('report', '')}"
+        if action == "project_detail":
+            header = f"[project_detail] {status.upper()}"
+            if result.get("matched"):
+                header += " (파일 1개 상세)"
+            return f"{header}\n\n{result.get('report', '')}"
+        if action == "project_summary":
+            covered, total = result.get("covered", 0), result.get("total", 0)
+            header = (
+                f"[project_summary] {status.upper()} "
+                f"({result.get('files', 0)}개 파일, {covered}/{total} 설명됨)"
+            )
+            return f"{header}\n\n{result.get('report', '')}"
         return json.dumps(result, ensure_ascii=False, indent=2)
 
     def _auto_fix_mkdir_hallucination(self, plan, index):
@@ -620,8 +735,7 @@ class AIAgent:
         self,
         file_path: str,
     ) -> None:
-        """
-        변경된 파일 하나만 다시 인덱싱한다.
+        """변경된 파일 하나만 다시 인덱싱한다.
         """
 
         if self.project_index is None:
@@ -629,20 +743,37 @@ class AIAgent:
 
         try:
 
+            target = self.workspace_path / file_path
+
             # -------------------------
             # Symbol Index
             # -------------------------
 
-            self.indexer.update_file(
+            # Returns True when this edit added or removed a symbol *name*.
+            # The reference index keys off the global name set, so a rename or
+            # a new definition has to be re-derived for the whole project;
+            # an edit to a function body does not, and re-tokenizing every
+            # file in the workspace for that was by far the most expensive
+            # thing this method did.
+            names_changed = self.indexer.update_file(
                 self.project_index,
-                self.workspace_path / file_path,
+                target,
             )
 
             # -------------------------
-            # Rebuild Derived Indexes
+            # Derived Indexes
             # -------------------------
 
-            self._rebuild_derived_indexes()
+            if names_changed:
+                self._rebuild_derived_indexes()
+            else:
+                self.call_graph.build(self.project_index)
+                self.reference_index.update_file(
+                    self.project_index,
+                    str(target),
+                )
+                self.semantic_file_index.build(self.project_index)
+                self.type_resolver.build(self.project_index)
 
         except Exception:
 
