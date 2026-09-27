@@ -25,8 +25,16 @@ class FakeRegistry:
     ("Reviewer", "patch_file", False),
     ("Tester", "verify_project", True),
     ("Tester", "write_file", False),
+    ("Tester", "execute_shell", False),
+    ("Tester", "execute_code", False),
     ("Memory", "read_file", False),
     ("Coder", "write_file", True),
+    # The Planner prompt plans Python runs as execute_code, so the Coder must
+    # be able to execute them (execute_code is weaker than execute_shell).
+    ("Coder", "execute_code", True),
+    ("Coder", "execute_shell", True),
+    # Verification independence: the Coder never judges its own work.
+    ("Coder", "verify_project", False),
 ])
 def test_role_tool_policy(role, tool, allowed):
     assert is_tool_allowed(role, tool) is allowed

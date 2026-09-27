@@ -33,6 +33,15 @@ ROLE_TOOL_POLICIES: dict[str, frozenset[str]] = {
         "apply_patch",
         "backup_file",
         "restore_backup",
+        # Applying a plan legitimately needs real commands: dependency
+        # installs, builds, running the changed program. The Planner prompt
+        # plans Python runs as execute_code and OS commands as execute_shell,
+        # so both belong here. execute_code is strictly weaker than the
+        # already-granted execute_shell, so it adds no new capability — it
+        # only keeps the policy consistent with what the Planner is told to
+        # plan (otherwise every execute_code Task would die as a permission
+        # error in the role pipeline).
+        "execute_code",
         "execute_shell",
         # Read/search
         "read_file",
@@ -41,8 +50,9 @@ ROLE_TOOL_POLICIES: dict[str, frozenset[str]] = {
         "search_symbol",
         "search_reference",
         "semantic_search",
-        # Coder does not run verification or arbitrary code execution.
-        # Those responsibilities belong to TesterAgent.
+        # Verification independence: the Coder must not be the authority on
+        # whether its own work succeeded, so verify_project is deliberately
+        # absent here. It belongs to the Tester (see below).
         # Git
         "git",
         "git_status",
@@ -56,6 +66,10 @@ ROLE_TOOL_POLICIES: dict[str, frozenset[str]] = {
         "rollback_patch",
     }),
     "Tester": frozenset({
+        # Verification is the Tester's only execution capability: no file
+        # mutation and no arbitrary shell/Python. Evidence comes from
+        # verify_project, which runs the project's own build/test commands
+        # with per-command timeouts (verify/runners.py).
         "read_file",
         "preview_patch",
         "list_directory",
