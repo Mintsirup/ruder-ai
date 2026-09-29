@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .alias import ALIASES
-from .nomalizer import SemanticNormalizer
+from .normalizer import SemanticNormalizer
 from .scorer import SemanticScorer
 from .tokenizer import SemanticTokenizer
 
