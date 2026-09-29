@@ -91,6 +91,17 @@ python -m pytest
 确定性基准测试答案而不调用真实模型。你可以自行设置该变量来覆盖它（例如设置
 `RUDER_AI_BENCHMARK_FIXTURE_MODE=0` 以走真实 LLM 代码路径）。
 
+## 翻译
+
+本文档还提供英文、韩文和日文版本。各版本与本文件逐节对应；如有出入，以英文文件为准。
+
+| 语言 | 文件 |
+|---|---|
+| English | [README.md](README.md) |
+| 한국어 | [README.ko.md](README.ko.md) |
+| 日本語 | [README.ja.md](README.ja.md) |
+| 简体中文 | [README.zh.md](README.zh.md) |
+
 ## 特性
 
 * 自主编码工作流
@@ -407,7 +418,7 @@ RUDER-AI 遵循目标项目已经确立的约定。
 
 * **增量索引现在真正生效了。** `AIAgent.refresh_file` 调用了
   `SymbolIndexer.update_file`，而该方法并不存在。每一次「增量」刷新都会抛出
-  `AttributeError`，调用方将其吞掉并把 `project_index` 置为 `None` —— 于是编辑一个
+  `AttributeError`，调用方将其吞掉并把 `project_index = None` 设置进去 —— 于是编辑一个
   文件就悄悄触发了整个工作区的重新扫描与重新解析。`SymbolIndexer.update_file` 与
   `ReferenceIndex.update_file` 现已存在，并且与完整重建得到逐字节相同的状态
   （已针对编辑、删除、语法错误和 Java 文件验证）。
@@ -522,9 +533,10 @@ ruder-ai survey --dir .
 |---|---|
 | `ruder_ai/core/executor.py 는 어떤 일을 해?` | 该文件的完整说明 |
 | `executor.py 자세히 설명해줘` | 同一个文件，按 basename 匹配 |
-| 「테스트 파일만 설명해줘」 | 63 个测试文件的列表 |
-| 「core 디렉터리 자세히」 | `core/` 下的 25 个文件 |
-| 「없는파일.py 설명해줘」 | 概览，外加一句诚实的「未找到」 |
+
+| `테스트 파일만 설명해줘` | 63 个测试文件的列表 |
+| `core 디렉터리 자세히` | `core/` 下的 25 个文件 |
+| `없는파일.py 설명해줘` | 概览，外加一句诚实的「未找到」 |
 
 被点名的文件、角色或目录优先于概览，而编辑请求又优先于二者 —— `auth.py 고쳐줘`
 是工作而非提问，而正是 executor 的轮次意图门控阻止它变成一次改动。

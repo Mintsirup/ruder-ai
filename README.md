@@ -231,7 +231,6 @@ Tool Call
 ToolExecutor
     │
     ├── Allowed → Execute Tool
-    │
     └── Denied  → permission error
 ```
 
