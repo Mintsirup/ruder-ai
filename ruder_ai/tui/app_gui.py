@@ -36,6 +36,7 @@ from ruder_ai.core.config import ConfigManager, settings_from_config
 from ruder_ai.core.telemetry import END_OF_TOKEN
 from ruder_ai.tui import find_replace
 from ruder_ai.tui.find_replace import Match
+from ruder_ai.tui.i18n import set_language, t
 from ruder_ai.tui.shell_session import PipeReaderThread, start_shell, strip_ansi
 from ruder_ai.tui.syntax import detect_language, tokenize
 
@@ -142,13 +143,13 @@ class EnvDialog(tk.Toplevel):
     def __init__(self, parent, config_mgr: ConfigManager):
         super().__init__(parent)
         self.config_mgr = config_mgr
-        self.title("환경변수 설정")
+        self.title(t("env.title"))
         self.configure(background=DARK["bg"])
         self.geometry("480x360")
 
         ttk.Label(
             self,
-            text="환경변수 설정 (형식: KEY=VALUE / 한 줄에 하나씩)",
+            text=t("env.hint"),
             background=DARK["bg"],
             foreground=DARK["bright"],
             font=("Segoe UI", 10, "bold"),
@@ -178,8 +179,8 @@ class EnvDialog(tk.Toplevel):
 
         buttons = ttk.Frame(self)
         buttons.pack(fill="x", padx=10, pady=(0, 10))
-        ttk.Button(buttons, text="취소", command=self.destroy).pack(side="right")
-        ttk.Button(buttons, text="💾 저장", style="Accent.TButton", command=self._save).pack(
+        ttk.Button(buttons, text=t("env.cancel"), command=self.destroy).pack(side="right")
+        ttk.Button(buttons, text=t("env.save"), style="Accent.TButton", command=self._save).pack(
             side="right", padx=(0, 6)
         )
 
@@ -194,7 +195,9 @@ class EnvDialog(tk.Toplevel):
                     os.environ[key] = value
 
         self.config_mgr.set("env_vars", envs)
-        messagebox.showinfo("성공", "환경변수가 성공적으로 저장되었습니다.", parent=self)
+        messagebox.showinfo(
+            t("msg.success"), t("env.saved"), parent=self,
+        )
         self.destroy()
 
 
@@ -332,7 +335,7 @@ class FindReplaceDialog(tk.Toplevel):
     def __init__(self, master, app):
         super().__init__(master)
         self.app = app
-        self.title("찾기 / 바꾸기")
+        self.title(t("find.title"))
         self.configure(background=DARK["bg"])
         self.resizable(False, False)
         self.transient(master)
@@ -352,31 +355,31 @@ class FindReplaceDialog(tk.Toplevel):
         outer = ttk.Frame(self, padding=10)
         outer.pack(fill="both", expand=True)
 
-        ttk.Label(outer, text="찾을 문자열").grid(row=0, column=0, sticky="w", pady=3)
+        ttk.Label(outer, text=t("find.find_label")).grid(row=0, column=0, sticky="w", pady=3)
         self.find_entry = ttk.Entry(outer, textvariable=self.find_var, width=32)
         self.find_entry.grid(row=0, column=1, columnspan=3, sticky="ew", pady=3)
 
-        ttk.Label(outer, text="바꿀 문자열").grid(row=1, column=0, sticky="w", pady=3)
+        ttk.Label(outer, text=t("find.replace_label")).grid(row=1, column=0, sticky="w", pady=3)
         self.replace_entry = ttk.Entry(outer, textvariable=self.replace_var, width=32)
         self.replace_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=3)
 
         opts = ttk.Frame(outer)
         opts.grid(row=2, column=0, columnspan=4, sticky="w", pady=(4, 2))
-        ttk.Checkbutton(opts, text="대/소문자", variable=self.case_var).pack(side="left")
-        ttk.Checkbutton(opts, text="단어 전체", variable=self.word_var).pack(side="left", padx=8)
-        ttk.Checkbutton(opts, text="정규식", variable=self.regex_var).pack(side="left")
-        ttk.Checkbutton(opts, text="오타 허용", variable=self.fuzzy_var).pack(side="left", padx=8)
+        ttk.Checkbutton(opts, text=t("find.case"), variable=self.case_var).pack(side="left")
+        ttk.Checkbutton(opts, text=t("find.word"), variable=self.word_var).pack(side="left", padx=8)
+        ttk.Checkbutton(opts, text=t("find.regex"), variable=self.regex_var).pack(side="left")
+        ttk.Checkbutton(opts, text=t("find.fuzzy"), variable=self.fuzzy_var).pack(side="left", padx=8)
         for var in (self.case_var, self.word_var, self.regex_var, self.fuzzy_var):
             var.trace_add("write", lambda *_: self.schedule_refresh())
 
         buttons = ttk.Frame(outer)
         buttons.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(8, 4))
-        ttk.Button(buttons, text="이전", command=lambda: self.step(-1)).pack(side="left")
-        ttk.Button(buttons, text="다음", command=lambda: self.step(1)).pack(side="left", padx=4)
-        ttk.Button(buttons, text="바꾸기", command=self.replace_current).pack(side="left", padx=12)
-        ttk.Button(buttons, text="모두 바꾸기", style="Accent.TButton",
+        ttk.Button(buttons, text=t("find.prev"), command=lambda: self.step(-1)).pack(side="left")
+        ttk.Button(buttons, text=t("find.next"), command=lambda: self.step(1)).pack(side="left", padx=4)
+        ttk.Button(buttons, text=t("find.replace"), command=self.replace_current).pack(side="left", padx=12)
+        ttk.Button(buttons, text=t("find.replace_all"), style="Accent.TButton",
                    command=self.replace_everything).pack(side="left")
-        ttk.Button(buttons, text="닫기", command=self.close).pack(side="right")
+        ttk.Button(buttons, text=t("find.close"), command=self.close).pack(side="right")
 
         ttk.Label(outer, textvariable=self.status_var, style="Muted.TLabel").grid(
             row=4, column=0, columnspan=4, sticky="w", pady=(6, 0)
@@ -567,7 +570,8 @@ class FindReplaceDialog(tk.Toplevel):
 class RuderAIVSCodeApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("RuderAI Studio")
+        set_language(ConfigManager().get("ui_language", "ko"))
+        self.title(t("studio.window_title"))
         self.geometry("1280x800")
         self.configure(background=DARK["bg"])
         _configure_dark(self)
@@ -639,8 +643,8 @@ class RuderAIVSCodeApp(tk.Tk):
             font=("Segoe UI", 10, "bold"),
         )
         self.title_label.pack(side="left")
-        ttk.Button(chrome, text="⚙️ 환경변수", command=self._open_env_dialog).pack(side="right", padx=(6, 0))
-        ttk.Button(chrome, text="📁 폴더 열기", command=self._change_workspace).pack(side="right")
+        ttk.Button(chrome, text=t("studio.env"), command=self._open_env_dialog).pack(side="right", padx=(6, 0))
+        ttk.Button(chrome, text=t("studio.open_folder"), command=self._change_workspace).pack(side="right")
 
         # --- Main split ---
         main_split = ttk.PanedWindow(self, orient="horizontal")
@@ -649,7 +653,7 @@ class RuderAIVSCodeApp(tk.Tk):
         sidebar = ttk.Frame(main_split, style="Panel.TFrame")
         explorer_bar = ttk.Frame(sidebar, style="Bar.TFrame", padding=(8, 4))
         explorer_bar.pack(fill="x")
-        ttk.Label(explorer_bar, text="EXPLORER", style="Muted.TLabel").pack(side="left")
+        ttk.Label(explorer_bar, text=t("studio.explorer"), style="Muted.TLabel").pack(side="left")
         ttk.Button(explorer_bar, text="📄+", width=3, command=lambda: self._create_new_item(False)).pack(side="right")
         ttk.Button(explorer_bar, text="📁+", width=3, command=lambda: self._create_new_item(True)).pack(
             side="right", padx=(4, 0)
@@ -678,10 +682,10 @@ class RuderAIVSCodeApp(tk.Tk):
         editor_bar = ttk.Frame(editor_frame, style="Bar.TFrame", padding=(10, 4))
         editor_bar.pack(fill="x")
         ttk.Button(
-            editor_bar, text="🔍 찾기/바꾸기 (Ctrl+F)", command=self._open_find,
+            editor_bar, text=t("studio.find_replace"), command=self._open_find,
         ).pack(side="right")
         ttk.Button(
-            editor_bar, text="💾 현재 파일 저장", style="Accent.TButton",
+            editor_bar, text=t("studio.save_file"), style="Accent.TButton",
             command=self._save_current_editor_file,
         ).pack(side="right", padx=(0, 6))
 
@@ -726,12 +730,12 @@ class RuderAIVSCodeApp(tk.Tk):
         self.prompt_entry = ttk.Entry(input_bar, font=UI_FONT)
         self.prompt_entry.pack(side="left", fill="x", expand=True)
         self.prompt_entry.bind("<Return>", lambda _e: self._send_prompt())
-        ttk.Button(input_bar, text="전송", style="Accent.TButton", command=self._send_prompt).pack(
+        ttk.Button(input_bar, text=t("studio.send"), style="Accent.TButton", command=self._send_prompt).pack(
             side="left", padx=(6, 0)
         )
 
-        self.notebook.add(ai_tab, text="🤖 RuderAI AI")
-        self._chat("🤖 RuderAI Studio 준비 완료. 질문을 입력하세요.\n" + "=" * 50 + "\n\n")
+        self.notebook.add(ai_tab, text=t("studio.ai_tab"))
+        self._chat(f"🤖 {t('studio.ready')}\n" + "=" * 50 + "\n\n")
 
     def _build_terminal_tab(self) -> None:
         term_tab = ttk.Frame(self.notebook, padding=4)
@@ -741,7 +745,7 @@ class RuderAIVSCodeApp(tk.Tk):
         self.term_display.pack(side="left", fill="both", expand=True)
         term_scroll.pack(side="right", fill="y")
         self.term_display.bind("<Key>", self._on_terminal_key)
-        self.notebook.add(term_tab, text="🖥️ Terminal")
+        self.notebook.add(term_tab, text=t("studio.terminal_tab"))
 
     # ------------------------------------------------------------------
     # AI chat
@@ -1044,7 +1048,9 @@ class RuderAIVSCodeApp(tk.Tk):
         try:
             content = file_path.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
-            messagebox.showerror("Error", f"파일을 읽을 수 없습니다:\n{exc}")
+            messagebox.showerror(
+                t("msg.error"), f"{t('msg.unreadable_file')}\n{exc}",
+            )
             return
 
         text = tk.Text(
@@ -1134,8 +1140,8 @@ class RuderAIVSCodeApp(tk.Tk):
         path = getattr(widget, "_file_path", None)
         name = Path(path).name if path else self.editor_tabs.tab(self.editor_tabs.index("current"))
         choice = messagebox.askyesnocancel(
-            "저장하지 않은 변경사항",
-            f"'{name}'에 저장하지 않은 변경사항이 있습니다.\n\n저장한 뒤 닫으시겠습니까?",
+            t("msg.unsaved_title"),
+            f"{t('msg.unsaved_question')}\n\n'{name}'",
         )
         if choice is None:
             return False
@@ -1150,7 +1156,9 @@ class RuderAIVSCodeApp(tk.Tk):
         try:
             Path(path).write_text(widget.get("1.0", "end-1c"), encoding="utf-8")
         except OSError as exc:
-            messagebox.showerror("에러", f"파일 저장 실패:\n{exc}")
+            messagebox.showerror(
+                t("msg.error"), f"{t('msg.save_failed')}\n{exc}",
+            )
             return False
         label = getattr(widget, "_tab_label", "")
         try:
@@ -1162,13 +1170,16 @@ class RuderAIVSCodeApp(tk.Tk):
     def _save_current_editor_file(self) -> None:
         widget = self._current_editor()
         if widget is None:
-            messagebox.showwarning("경고", "저장할 파일 탭이 선택되어 있지 않습니다.")
+            messagebox.showwarning(t("msg.warning"), t("msg.no_tab_selected"))
             return
         if getattr(widget, "_file_path", None) is None:
-            messagebox.showwarning("경고", "저장할 수 없는 임시 탭입니다.")
+            messagebox.showwarning(t("msg.warning"), t("msg.temp_tab_unsavable"))
             return
         if self._save_editor_widget(widget):
-            messagebox.showinfo("성공", f"'{Path(widget._file_path).name}' 파일이 저장되었습니다.")
+            messagebox.showinfo(
+                t("msg.success"),
+                f"{t('msg.file_saved')}\n'{Path(widget._file_path).name}'",
+            )
 
     # ------------------------------------------------------------------
     # File / folder management
@@ -1186,7 +1197,9 @@ class RuderAIVSCodeApp(tk.Tk):
 
         new_path = target_dir / name.strip()
         if new_path.exists():
-            messagebox.showwarning("경고", f"이미 존재하는 {label} 이름입니다.")
+            messagebox.showwarning(
+                t("msg.warning"), f"{t('msg.name_exists')}\n{label}",
+            )
             return
         try:
             if is_folder:
@@ -1195,7 +1208,9 @@ class RuderAIVSCodeApp(tk.Tk):
                 new_path.parent.mkdir(parents=True, exist_ok=True)
                 new_path.touch()
         except OSError as exc:
-            messagebox.showerror("에러", f"{label} 생성 실패:\n{exc}")
+            messagebox.showerror(
+                t("msg.error"), f"{label}\n{t('msg.create_failed')}\n{exc}",
+            )
             return
 
         self._load_file_tree()
@@ -1205,14 +1220,19 @@ class RuderAIVSCodeApp(tk.Tk):
     def _delete_selected_item(self) -> None:
         target = self._selected_path()
         if target is None or target == self.workspace_path:
-            messagebox.showwarning("경고", "최상위 워크스페이스 폴더는 삭제할 수 없습니다.")
+            messagebox.showwarning(t("msg.warning"), t("msg.cannot_delete_root"))
             return
-        if not messagebox.askyesno("삭제 확인", f"정말로 '{target.name}' 항목을 삭제하시겠습니까?"):
+        if not messagebox.askyesno(
+            t("msg.delete_confirm"),
+            f"{t('msg.delete_question')}\n'{target.name}'",
+        ):
             return
         try:
             shutil.rmtree(target) if target.is_dir() else target.unlink()
         except OSError as exc:
-            messagebox.showerror("에러", f"삭제 실패:\n{exc}")
+            messagebox.showerror(
+                t("msg.error"), f"{t('msg.delete_failed')}\n{exc}",
+            )
             return
         self._load_file_tree()
 
@@ -1220,7 +1240,7 @@ class RuderAIVSCodeApp(tk.Tk):
         """tkinter has no drag-and-drop, so moving is an explicit action."""
         source = self._selected_path()
         if source is None or source == self.workspace_path:
-            messagebox.showwarning("경고", "최상위 워크스페이스 폴더는 이동할 수 없습니다.")
+            messagebox.showwarning(t("msg.warning"), t("msg.cannot_move_root"))
             return
 
         raw = simpledialog.askstring(
@@ -1236,7 +1256,9 @@ class RuderAIVSCodeApp(tk.Tk):
         if not dest_dir.is_absolute():
             dest_dir = (source.parent / dest_dir).resolve()
         if not dest_dir.is_dir():
-            messagebox.showerror("에러", f"존재하지 않는 폴더입니다:\n{dest_dir}")
+            messagebox.showerror(
+                t("msg.error"), f"{t('msg.missing_folder')}\n{dest_dir}",
+            )
             return
         if dest_dir == source.parent:
             return
@@ -1244,25 +1266,33 @@ class RuderAIVSCodeApp(tk.Tk):
         # its root and can recurse forever.
         try:
             if source.is_dir() and dest_dir in source.parents:
-                messagebox.showerror("에러", "자기 자신 안으로 폴더를 이동할 수 없습니다.")
+                messagebox.showerror(t("msg.error"), t("msg.move_into_self"))
                 return
         except OSError:
             pass
 
         dest = dest_dir / source.name
         if dest.exists():
-            if not messagebox.askyesno("대상 존재", f"'{dest}'이(가) 이미 존재합니다. 덮어쓸까요?"):
+            if not messagebox.askyesno(
+                t("msg.dest_exists"),
+                f"'{dest}'\n{t('msg.dest_exists_question')}",
+            ):
                 return
             try:
                 shutil.rmtree(dest) if dest.is_dir() else dest.unlink()
             except OSError as exc:
-                messagebox.showerror("에러", f"기존 대상 제거 실패:\n{exc}")
+                messagebox.showerror(
+                    t("msg.error"), f"{t('msg.remove_dest_failed')}\n{exc}",
+                )
                 return
 
         try:
             shutil.move(str(source), str(dest))
         except OSError as exc:
-            messagebox.showerror("이동 실패", f"항목을 이동할 수 없습니다:\n{exc}")
+            messagebox.showerror(
+                t("msg.move_failed_title"),
+                f"{t('msg.move_failed')}\n{exc}",
+            )
             return
         self._load_file_tree()
 
@@ -1273,7 +1303,7 @@ class RuderAIVSCodeApp(tk.Tk):
     def _open_find(self, *, focus_replace: bool = False) -> None:
         widget = self._current_editor()
         if widget is None:
-            messagebox.showinfo("찾기", "먼저 파일을 열어주세요.")
+            messagebox.showinfo(t("find.title"), t("msg.open_file_first"))
             return
 
         if self.find_dialog is not None and self.find_dialog.winfo_exists():

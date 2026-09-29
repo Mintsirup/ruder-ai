@@ -30,6 +30,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "max_reflections": 2,
     "enable_reflection": True,
     "workspace_dir": str(Path.cwd()),
+    # Studio/settings chrome language. One of tui.i18n.LANGUAGES; an unknown
+    # value falls back to Korean rather than leaving the GUI untranslated.
+    "ui_language": "ko",
 }
 
 
