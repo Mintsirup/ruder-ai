@@ -1,0 +1,1 @@
+# Java minimal fixture
