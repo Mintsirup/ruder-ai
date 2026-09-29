@@ -1,5 +1,7 @@
 # RUDER-AI
 
+**Languages:** [English](README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh.md)
+
 **RUDER-AI** is a role-separated autonomous coding agent designed to turn natural-language tasks into real, verifiable changes inside a software workspace.
 
 RUDER-AI combines LLM reasoning with deterministic Tool execution, role-based permissions, independent verification, and multi-language model configurations.
@@ -98,6 +100,19 @@ python -m pytest
 selects the orchestrator's deterministic benchmark answers instead of calling a
 live model. Set the variable yourself to override that (for example
 `RUDER_AI_BENCHMARK_FIXTURE_MODE=0` to exercise the live-LLM code path).
+
+## Translations
+
+This README is also available in Korean, Japanese and Simplified Chinese. Each
+translation mirrors this file section for section; when one is out of date, the
+English file is the source of truth.
+
+| Language | File |
+|---|---|
+| English | [README.md](README.md) |
+| 한국어 | [README.ko.md](README.ko.md) |
+| 日本語 | [README.ja.md](README.ja.md) |
+| 简体中文 | [README.zh.md](README.zh.md) |
 
 ## Features
 
@@ -285,9 +300,9 @@ The current configurations are:
 | Model         | Language | Purpose           |
 | ------------- | -------- | ----------------- |
 | `ruder-ai-ko` | 한국어      | Korean RUDER-AI   |
-| `ruder-ai-zh` | 简体中文     | Chinese RUDER-AI  |
+| `ruder-ai-cn` | 简体中文     | Chinese RUDER-AI  |
 | `ruder-ai-en` | English  | English RUDER-AI  |
-| `ruder-ai-ja` | 日本語      | Japanese RUDER-AI |
+| `ruder-ai-jp` | 日本語      | Japanese RUDER-AI |
 
 Each model uses the same RUDER-AI Code Mode architecture while enforcing its configured response language.
 
